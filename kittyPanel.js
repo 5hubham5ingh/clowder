@@ -272,7 +272,9 @@ async function updateCalender() {
         "─".repeat(Math.max(...lines.map((l) => l.stripStyle().length))),
       );
     }
-    state.calender = lines.map((l) => l.trimEnd()).join("\n");
+    state.calender = lines.filter((l) => l.trim().length).map((l) =>
+      l.trimEnd()
+    ).join("\n");
     await os.sleepAsync(1..hours);
   }
 }
@@ -379,7 +381,7 @@ async function updateBluetooth() {
           .catch(() => {
             state.bluetooth = "Error";
           });
-      }).catch((_) => state.bluetooth = "Disabled");
+      }).catch((_) => state.bluetooth = undefined /* "Disabled"*/);
     await os.sleepAsync(3..seconds);
   }
 }
