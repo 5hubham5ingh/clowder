@@ -77,6 +77,7 @@ async function main() {
   updateBrightnessState();
   updateBluetooth();
   updateWorkspace();
+  if (IS_BAR) updateSystemStats();
 
   while (true) {
     if (IS_BAR) renderUiForBar();
@@ -116,6 +117,9 @@ function renderUiForBar() {
     formatDetail(undefined, state.workspace),
     formatDetail(undefined, now.toTimeString().split(" ")[0]),
     formatDetail(undefined, now.toDateString()),
+    formatDetail("CPU", state?.systemStats?.cpu),
+    formatDetail("RAM", state?.systemStats?.ram),
+    formatDetail("SWAP", state?.systemStats?.swap),
     formatDetail("Battery", state.battery),
     formatDetail("Bluetooth", state.bluetooth),
     formatDetail("Brightness", state.brightness),
@@ -234,6 +238,47 @@ function renderUiForPanel() {
       .align("right"),
   );
   std.out.flush();
+}
+
+async function updateSystemStats() {
+  while (true) {
+    const v = $`vmstat`.lines().at(-1).trim().split(/\s+/).map(Number);
+
+    const [
+      ,
+      , // r, b
+      swpd,
+      free,
+      buff,
+      cache,
+      ,
+      , // si, so
+      ,
+      , // bi, bo
+      ,
+      , // in, cs
+      ,
+      , // us, sy
+      id,
+    ] = v;
+
+    const totalObservedMemory = swpd + free + buff + cache;
+
+    state.systemStats = {
+      cpu: parseInt(100 - id),
+
+      ram: parseInt(
+        totalObservedMemory === 0
+          ? 0
+          : ((swpd + buff + cache) / totalObservedMemory) * 100,
+      ),
+
+      swap: parseInt(
+        totalObservedMemory === 0 ? 0 : (swpd / totalObservedMemory) * 100,
+      ),
+    };
+    await os.sleepAsync(2..seconds);
+  }
 }
 
 async function updateCalender() {
