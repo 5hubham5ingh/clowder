@@ -58,7 +58,12 @@ os.signal(os.SIGINT, () => {
   std.exit(0);
 });
 
-main().catch(print);
+main().catch((e) => {
+  const log = std.open("/tmp/bar.txt", "w+");
+  log.puts(e);
+  log.flush();
+  log.close();
+});
 
 async function main() {
   updateWeather();
@@ -88,6 +93,9 @@ async function main() {
 function renderUiForBar() {
   const s = "◖".style(state.colors[2]);
   const e = "◗".style(state.colors[2]);
+
+  const terminalSize = terminal.getTerminalSize();
+  if (terminalSize) state.terminalWidth = terminalSize[0];
 
   const formatDetail = (
     symbol,
@@ -120,7 +128,7 @@ function renderUiForBar() {
   ].filter(Boolean);
 
   const barLength = uiElements.reduce(
-    (l, e) => l + e.replaceAll("♦", " ").stripEmojis().stripStyle().length + 1,
+    (l, e) => l + e.stripStyle().length,
     0,
   );
 
@@ -144,12 +152,18 @@ function renderUiForBar() {
       );
     }
     std.out.puts(
-      lines.join("\n").align("center", state.terminalWidth - 6) +
+      lines.join("\n").align(
+        "center",
+        state.terminalWidth - uiElements.length + 2,
+      ) +
         terminal.cursorTo(0, 0),
     );
   } else {
     std.out.puts(
-      uiElements.join("").align("center", state.terminalWidth) +
+      uiElements.join("").align(
+        "center",
+        state.terminalWidth - uiElements.length + 2,
+      ) +
         terminal.cursorTo(0, 0),
     );
   }
