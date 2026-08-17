@@ -1,0 +1,99 @@
+#!/usr/bin/js
+
+/* TODO:
+ * - signout menu (depends on render.gallery() of 'js')
+ * - lockscreen
+ * - widget panel (render above background layer, might support blured window over wallpaper)
+ * - notification panel (replacement of dunst): it might be a different project, a TUI notification center with option to choose between notify-send for desktop default of kitty panel for notification pop-ups
+ */
+
+const cmd = [];
+
+const apps = {
+  terminal: "kitty -1 --detach --listen-on=unix:@terminal", // use `kitty @ --to=unix:@terminal set-colors -a -c ${themeConfPath}` to terminal color theme
+  bar: "/home/ss/dev/kitty-panel/bar.js --min", // single line bar
+  background: "cava", // use 'kitty @ set-background-image --match=id:1 ${wallpaperPath}' to set wallpaper. NOTE: the background panel should be launched first to attain window id 1.
+  launcher: "jiffy -s 6 -m a -x wl-copy -1",
+  wallpaper: `WallRizz${scriptArgs?.[3] === "-r" ? " -r " : " " // to set random wallpaper at startup with 'kittyshell wallpaper -r'
+  }-d /home/ss/pics/walls/1920x1080.anime`,
+  wifi: "impala",
+  bluetooth: "bluetui",
+  sound: "wiremix",
+  exitMenu: "",
+};
+
+const marginProps = (margin) =>
+  `--margin-bottom=${margin} --margin-left=${margin} --margin-right=${margin} --margin-top=${margin}`;
+
+const panel =
+  "kitty +kitten panel -1 --listen-on=unix:@kittyshell --detach=yes -o background_tint=0 -o background_opacity=0.2";
+
+const floatPanelProps =
+  `--layer=overlay --edge=center --focus-policy=exclusive ${marginProps(300)}`;
+
+let app = scriptArgs?.[2];
+main: while (true) {
+  switch (app) {
+    case "terminal":
+      cmd.push(apps.terminal);
+      break;
+    case "launcher":
+      cmd.push(
+        `${panel} ${floatPanelProps} --app-id=launcher ${apps.launcher}`,
+      );
+      break;
+    case "startup":
+    case "background":
+      cmd.push(
+        `${panel} --layer=background --app-id=background ${
+          marginProps(0)
+        } ${apps.background}`,
+      );
+      if (app !== "startup") break;
+    /* fall through */
+    case "bar":
+      cmd.push(
+        `${panel} --layer=bottom --edge=bottom --app-id=bar ${
+          marginProps(0)
+        } --lines=1 -o window_padding_width=1 ${apps.bar}`,
+      );
+      if (app !== "startup") break;
+      apps.wallpaper = `${apps.wallpaper} -r`;
+    /* fall through */
+    case "wallpaper":
+      cmd.push(
+        `${panel} ${floatPanelProps} --app-id=wallpaper ${apps.wallpaper}`,
+      );
+      break;
+    case "wifi":
+      cmd.push(`${panel} ${floatPanelProps} --app-id=wifi ${apps.wifi}`);
+      break;
+    case "bluetooth":
+      cmd.push(
+        `${panel} ${floatPanelProps} --app-id=bluetooth ${apps.bluetooth}`,
+      );
+      break;
+    case "sound":
+      cmd.push(`${panel} ${floatPanelProps} --app-id=sound ${apps.sound}`);
+      break;
+    case "lockscreen":
+      // --grab-keyboard=yes and no -1
+      break;
+    case "shell":
+      cmd.push(
+        `${panel} ${floatPanelProps} bash`,
+      );
+      break;
+    case "choose":
+      app = enquire.search(["Cancle", ...Object.keys(apps), "shell"]);
+      if (app === "Cancle") break;
+      continue main;
+    default:
+      cmd.push(
+        `${panel} ${floatPanelProps} ${marginProps(450)} kittyshell choose`,
+      );
+  }
+  break;
+}
+
+cmd.for((c) => os.exec(c.split(" ")));

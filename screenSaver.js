@@ -1,14 +1,25 @@
 #!/usr/bin/js
 
-print(terminal.cursorHide);
+print(terminal.cursorHide, terminal.clearTerminal);
+os.signal(os.SIGINT, () => {
+  print(terminal.cursorShow);
+  std.exit(0);
+});
+const state = {
+  imgX: 73,
+  imgY: 10,
+  textX: 3,
+  textY: 2,
+};
+// os.exec("kitty @ set-font-size 35".split(" "));
 await renderLogo();
 const updateTime = (d = new Date()) =>
   print(
-    terminal.cursorTo(50, 15),
+    terminal.cursorTo(state.textX, state.textY),
     draw.text(
       d.getHours().toString().padStart(2, "0") + ":" +
-        d.getMinutes().toString().padStart(2, "0") + ":" +
-        d.getSeconds().toString().padStart(2, "0"),
+        d.getMinutes().toString().padStart(2, "0"),
+      // + ":" + d.getSeconds().toString().padStart(2, "0"),
       7,
     ),
   );
@@ -92,7 +103,7 @@ z"/>
 </svg>
 `;
   exec(
-    `kitty +kitten icat --align=center --place ${iconSize}x${iconSize}@69x5 --scale --clear >>/dev/tty`,
+    `kitty +kitten icat --align=center --place ${iconSize}x${iconSize}@${state.textX}x${state.textY} --scale --clear >>/dev/tty`,
     {
       input: ss,
       useShell: true,

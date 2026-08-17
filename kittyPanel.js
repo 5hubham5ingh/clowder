@@ -151,7 +151,7 @@ function renderUiForBar() {
     }
     if (lines.length !== state.barHeight) {
       exec(
-        `kitten @ --to=unix:@bar resize-os-window --action=os-panel --incremental edge=bottom lines=${state
+        `kitten @ --self resize-os-window --action=os-panel --incremental edge=bottom lines=${state
           .barHeight = lines.length}`.split(" "),
       );
     }
@@ -265,17 +265,21 @@ async function updateSystemStats() {
     const totalObservedMemory = swpd + free + buff + cache;
 
     state.systemStats = {
-      cpu: parseInt(100 - id),
+      cpu: `${parseInt(100 - id)}%`,
 
-      ram: parseInt(
-        totalObservedMemory === 0
-          ? 0
-          : ((swpd + buff + cache) / totalObservedMemory) * 100,
-      ),
+      ram: `${
+        parseInt(
+          totalObservedMemory === 0
+            ? 0
+            : ((swpd + buff + cache) / totalObservedMemory) * 100,
+        )
+      }%`,
 
-      swap: parseInt(
-        totalObservedMemory === 0 ? 0 : (swpd / totalObservedMemory) * 100,
-      ),
+      swap: `${
+        parseInt(
+          totalObservedMemory === 0 ? 0 : (swpd / totalObservedMemory) * 100,
+        )
+      }%`,
     };
     await os.sleepAsync(2..seconds);
   }
