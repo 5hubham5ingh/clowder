@@ -20,13 +20,15 @@ const apps = {
   bluetooth: "bluetui",
   sound: "wiremix",
   exitMenu: "",
+  scratchpad: "kitten quick-access-terminal",
+  startup: "startup",
 };
 
 const marginProps = (margin) =>
   `--margin-bottom=${margin} --margin-left=${margin} --margin-right=${margin} --margin-top=${margin}`;
 
 const panel =
-  "kitty +kitten panel -1 --listen-on=unix:@kittyshell --detach=yes -o background_tint=0 -o background_opacity=0.2";
+  "kitty +kitten panel -1 --listen-on=unix:@kittyshell --detach=yes -o background_tint=0 -o background_opacity=0";
 
 const floatPanelProps =
   `--layer=overlay --edge=center --focus-policy=exclusive ${marginProps(300)}`;
@@ -41,6 +43,9 @@ main: while (true) {
       cmd.push(
         `${panel} ${floatPanelProps} --app-id=launcher ${apps.launcher}`,
       );
+      break;
+    case "scratchpad":
+      cmd.push(`${panel} ${marginProps(30)} --app-id=scratchpad`);
       break;
     case "startup":
     case "background":
@@ -90,7 +95,7 @@ main: while (true) {
       continue main;
     default:
       cmd.push(
-        `${panel} ${floatPanelProps} ${marginProps(450)} kittyshell choose`,
+        `${panel} ${floatPanelProps} ${marginProps(450)} clowder choose`,
       );
   }
   break;
