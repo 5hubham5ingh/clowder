@@ -5,6 +5,7 @@
  * - lockscreen
  * - widget panel (render above background layer, might support blured window over wallpaper)
  * - notification panel (replacement of dunst): it might be a different project, a TUI notification center with option to choose between notify-send for desktop default of kitty panel for notification pop-ups
+*  - total memory consumption of three kitty instances
  */
 
 const cmd = [];
@@ -45,7 +46,9 @@ main: while (true) {
       );
       break;
     case "scratchpad":
-      cmd.push(`${panel} ${marginProps(30)} --app-id=scratchpad`);
+      cmd.push(
+        `${apps.scratchpad} -o margin_top=50 -o margin_left=100 -o margin_right=100 -o margin_bottom=50 -o edge=center`,
+      );
       break;
     case "startup":
     case "background":
@@ -95,7 +98,9 @@ main: while (true) {
       continue main;
     default:
       cmd.push(
-        `${panel} ${floatPanelProps} ${marginProps(450)} clowder choose`,
+        `${panel} ${floatPanelProps} ${
+          marginProps(450)
+        } --app-id=clowder clowder choose`,
       );
   }
   break;
