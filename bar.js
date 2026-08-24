@@ -35,6 +35,8 @@ const state = {
   location: pendingState,
   screenShare: pendingState,
   workspace: pendingState,
+  downloadSpeed: pendingState,
+  uploadSpeed: pendingState,
   iconSize: 25,
   terminalWidth: 234,
   barHeight: 1,
@@ -62,6 +64,7 @@ async function main() {
   updateLocationState();
   updateCameraState();
   updateWifiState();
+  updateNetworkSpeed();
   updateVolumeState();
   updateBrightnessState();
   updateBluetooth();
@@ -118,6 +121,8 @@ function renderMinUi() {
     formatDetail("Sound", state.volume),
     formatDetail("Screenshare", state.screenShare),
     formatDetail("Wifi", state.wifi),
+    formatDetail("↓", state.downloadSpeed),
+    formatDetail("↑", state.uploadSpeed),
   ].filter(Boolean);
 
   const barLength = uiElements.reduce(
@@ -191,6 +196,7 @@ function renderMaxUi() {
     .style(c2).border("rounded", c2);
 
   const wifiBox = `Wifi: ${state.wifi}`.style(c0).border("rounded", c0);
+  const netBox = `↓${state.downloadSpeed} ↑${state.uploadSpeed}`.style(c0).border("rounded", c0);
   const brightBox = `Brightness: ${state.brightness}`.style(c0)
     .border("rounded", c0);
   const battBox = `Battery: ${state.battery}`.style(c0)
@@ -214,7 +220,7 @@ function renderMaxUi() {
 
   const volumeBluetoothAndWeather = volumeAndBluetooth.join(weatherBox);
 
-  const wifiBrightnessAndBattery = wifiBox.join(brightBox).join(battBox).join(
+  const wifiBrightnessAndBattery = wifiBox.join(netBox).join(brightBox).join(battBox).join(
     camBox,
   ).join(micBox);
 
@@ -371,6 +377,78 @@ async function updateWifiState() {
       state.wifi = match ? match[1] : "N/A";
     });
     await os.sleepAsync(2..seconds);
+  }
+}
+
+function formatSpeed(bytesPerSec) {
+  const units = ["B/s", "KB/s", "MB/s", "GB/s"];
+  let i = 0;
+  while (bytesPerSec >= 1024 && i < units.length - 1) {
+    bytesPerSec /= 1024;
+    i++;
+  }
+  return `${bytesPerSec.toFixed(i === 0 ? 0 : 1)}${units[i]}`;
+}
+
+async function updateNetworkSpeed() {
+  const getPrimaryInterface = async () => {
+    let content = read("/proc/net/dev");
+    if (!content) {
+      content = await execAsync("cat /proc/net/dev");
+    }
+    if (!content) return null;
+    const lines = content.lines().slice(2);
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      const iface = parts[0].replace(":", "");
+      if (iface !== "lo" && parts[1] !== "0") {
+        return iface;
+      }
+    }
+    return lines[0]?.trim().split(/\s+/)[0]?.replace(":", "") || "wlan0";
+  };
+
+  let iface = await getPrimaryInterface();
+  let lastRx = 0;
+  let lastTx = 0;
+  let lastTime = Date.now();
+
+  const readStats = async () => {
+    let content = read("/proc/net/dev");
+    if (!content) {
+      content = await execAsync("cat /proc/net/dev");
+    }
+    if (!content) return null;
+    const lines = content.lines().slice(2);
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts[0].replace(":", "") === iface) {
+        return { rx: parseInt(parts[1]), tx: parseInt(parts[9]) };
+      }
+    }
+    return null;
+  };
+
+  const initial = await readStats();
+  if (initial) {
+    lastRx = initial.rx;
+    lastTx = initial.tx;
+  }
+
+  while (true) {
+    await os.sleepAsync(2..seconds);
+    const now = Date.now();
+    const stats = await readStats();
+    if (stats) {
+      const dt = (now - lastTime) / 1000;
+      const rxSpeed = (stats.rx - lastRx) / dt;
+      const txSpeed = (stats.tx - lastTx) / dt;
+      state.downloadSpeed = formatSpeed(rxSpeed);
+      state.uploadSpeed = formatSpeed(txSpeed);
+      lastRx = stats.rx;
+      lastTx = stats.tx;
+      lastTime = now;
+    }
   }
 }
 
